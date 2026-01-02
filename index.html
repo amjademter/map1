@@ -66,6 +66,7 @@
       margin-bottom: 10px;
       user-select:none;
       -webkit-tap-highlight-color: transparent;
+      cursor: default;
     }
     .brand h1{ margin:0; font-size: 15px; line-height: 1.4; }
     .pill{
@@ -121,7 +122,7 @@
     }
     label{ font-size: 12px; color: var(--muted); }
 
-    input, select{
+    input{
       width:100%;
       padding: 12px 12px;
       border-radius: 12px;
@@ -186,6 +187,10 @@
       background: rgba(11,18,32,.55);
       border: 1px solid rgba(34,52,87,.9);
       color: var(--text);
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .content{
@@ -227,6 +232,7 @@
       padding: 12px;
       margin-bottom: 10px;
     }
+
     .scanResult{
       padding: 10px 12px;
       border-radius: 12px;
@@ -355,7 +361,7 @@
   <div class="modalBack" id="loginModal">
     <div class="modal">
       <h3>تسجيل دخول</h3>
-      <p>نسخة تجريبية: سيتم عرض الكود داخل الصفحة بدل SMS (لـ SMS الحقيقي تحتاج Backend).</p>
+      <p>نسخة تجريبية: سيظهر الكود داخل الصفحة بدل SMS (الـ SMS الحقيقي يحتاج Backend).</p>
 
       <div class="field">
         <label>رقم الهاتف</label>
@@ -384,7 +390,7 @@
   <div class="modalBack" id="adminModal">
     <div class="modal">
       <h3>دخول الإدارة</h3>
-      <p>اضغط مطولاً على عنوان النظام لفتح هذه الشاشة، ثم أدخل PIN.</p>
+      <p>للوصول للإدارة: اضغط مطولاً على عنوان النظام ثم أدخل PIN.</p>
       <div class="field">
         <label>Admin PIN</label>
         <input id="adminPin" placeholder="****" inputmode="numeric" />
@@ -393,7 +399,7 @@
         <button class="btn success" id="adminLogin" type="button">دخول</button>
         <button class="btn" id="adminCancel" type="button">إلغاء</button>
       </div>
-      <p class="hint">لتغيير الـ PIN عدّل المتغير <code>ADMIN_PIN</code> داخل الكود.</p>
+      <p class="hint">لتغيير الـ PIN عدّل المتغير <code>ADMIN_PIN</code>.</p>
     </div>
   </div>
 
@@ -403,7 +409,7 @@
       <div class="brand" id="brandArea" title="اضغط مطولاً للدخول للإدارة">
         <div>
           <h1>نظام خريطة متجر + باركود + فاتورة</h1>
-          <div class="hint">بحث بالاسم/الباركود، Barcode، فاتورة</div>
+          <div class="hint">بحث بالاسم/الباركود + Barcode + فاتورة</div>
         </div>
         <span class="pill" id="modeBadge">الوضع: مستخدم</span>
       </div>
@@ -414,7 +420,7 @@
         <button class="tab" id="tabBill" type="button">الفاتورة</button>
       </div>
 
-      <!-- USER SEARCH (سيختفي في صفحة الفاتورة) -->
+      <!-- USER SEARCH (يختفي في صفحة الفاتورة) -->
       <div class="section" id="userSearchSection">
         <h2>بحث المستخدم</h2>
 
@@ -429,32 +435,20 @@
         </div>
       </div>
 
-      <!-- ADMIN (hidden until admin login) -->
+      <!-- ADMIN (Hidden by default) -->
       <div class="section admin-only" style="display:none;">
         <h2>إدارة المنتجات (ممنوع التكرار)</h2>
-        <hr class="divider">
-
-<h2 style="margin:0 0 10px; font-size:14px;">حذف منتج</h2>
-
-<div class="field">
-  <label>حذف بالاسم أو بالباركود</label>
-  <input id="delQuery" placeholder="مثال: حليب أو 629100..." />
-</div>
-
-<div class="row">
-  <button class="btn danger" id="deleteProductBtn" type="button">حذف المنتج</button>
-</div>
-
-<p class="hint">عند الحذف سيتم إزالة المنتج من قائمة المنتجات ومن الفاتورة إذا كان موجودًا فيها.</p>
 
         <div class="field">
           <label>Barcode (إجباري)</label>
           <input id="sku" placeholder="629100..." inputmode="numeric" />
         </div>
+
         <div class="field">
           <label>اسم المنتج (إجباري)</label>
           <input id="pname" placeholder="مثال: حليب" />
         </div>
+
         <div class="field">
           <label>سعر المنتج (إجباري)</label>
           <input id="pprice" placeholder="مثال: 7.5" inputmode="decimal" />
@@ -462,16 +456,29 @@
 
         <div class="row">
           <button class="btn success" id="addProduct" type="button">إضافة منتج (اضغط على الخريطة)</button>
+          <button class="btn primary" id="adminFind" type="button">بحث (اسم/باركود)</button>
         </div>
 
         <hr class="divider">
+
         <div class="row">
           <button class="btn mini success" id="saveProducts" type="button">حفظ المنتجات</button>
           <button class="btn mini" id="loadProducts" type="button">تحميل المنتجات</button>
           <button class="btn mini danger" id="clearProducts" type="button">مسح المنتجات</button>
         </div>
 
-        <p class="hint">إذا الباركود أو الاسم موجود مسبقًا: سيتم رفض الإضافة وإظهار رسالة للإدارة.</p>
+        <hr class="divider">
+
+        <h2 style="margin:0 0 10px; font-size:14px;">حذف منتج</h2>
+        <div class="field">
+          <label>حذف بالاسم أو بالباركود</label>
+          <input id="delQuery" placeholder="مثال: حليب أو 629100..." />
+        </div>
+        <div class="row">
+          <button class="btn danger" id="deleteProductBtn" type="button">حذف المنتج</button>
+        </div>
+
+        <p class="hint">عند وجود تكرار: سيتم رفض الإضافة مع رسالة في شريط الحالة العلوي.</p>
       </div>
 
       <div class="section admin-only" style="display:none;">
@@ -511,7 +518,7 @@
               <button class="btn mini danger" id="clearGraph" type="button">مسح الشبكة</button>
             </div>
 
-            <p class="hint">حذف نقطة: اضغط على النقطة القريبة منها (سيتم حذفها وحذف روابطها).</p>
+            <p class="hint">لا يوجد تنبيهات منبثقة. تابع كل شيء من شريط الحالة العلوي.</p>
           </div>
 
           <div id="map"></div>
@@ -535,7 +542,7 @@
               <button class="btn" id="stopScan" type="button">إيقاف</button>
               <button class="btn" id="toggleManual" type="button">إدخال يدوي</button>
               <button class="btn success admin-only" id="scanToAdd" type="button" style="display:none;">
-                مسح (للإدارة فقط)
+                مسح للإدارة (تعبئة الباركود)
               </button>
             </div>
 
@@ -550,7 +557,7 @@
               </div>
             </div>
 
-            <p class="hint">المسح في وضع المستخدم: يضيف المنتج للفاتورة (كمية +1) ويضع الكود في البحث.</p>
+            <p class="hint">المسح في وضع المستخدم: يضيف المنتج للفاتورة ويحدث الكمية.</p>
           </div>
 
           <div class="card">
@@ -607,11 +614,11 @@
     // Config
     // =============================
     const ADMIN_PIN = "1234"; // غيّرها
-    const SNAP_GRID = 6;
-    const MAP_MARGIN = 6;
+    const SNAP_GRID = 6;      // تقارب نقاط الممرات (سناب)
+    const MAP_MARGIN = 6;     // هامش داخل الخريطة
 
     // =============================
-    // Helpers (بدون إشعارات أسفل / بدون Popups)
+    // Status UI (بدون Alerts/Toasts)
     // =============================
     const statusText = document.getElementById("statusText");
     const buildModeText = document.getElementById("buildModeText");
@@ -642,22 +649,22 @@
       tabScan.classList.toggle("active", isScan);
       tabBill.classList.toggle("active", isBill);
 
-      // أخفِ بحث المستخدم في صفحة الفاتورة
+      // ممنوع ظهور بحث المستخدم داخل الفاتورة
       userSearchSection.style.display = isBill ? "none" : "block";
 
       document.body.offsetHeight;
-
       location.hash = isMap ? "#map" : isScan ? "#scan" : "#bill";
 
       if (isMap) {
         setTimeout(() => map.invalidateSize(true), 150);
         setTimeout(() => map.invalidateSize(true), 500);
       }
+      if (isBill) renderBill();
     }
 
     tabMap.addEventListener("click", (e) => { e.preventDefault(); stopScanner(true); showPage("map"); setStatus("صفحة الخريطة"); });
     tabScan.addEventListener("click", (e) => { e.preventDefault(); showPage("scan"); setStatus("صفحة الكاميرا"); });
-    tabBill.addEventListener("click", (e) => { e.preventDefault(); stopScanner(true); showPage("bill"); setStatus("صفحة الفاتورة"); renderBill(); });
+    tabBill.addEventListener("click", (e) => { e.preventDefault(); stopScanner(true); showPage("bill"); setStatus("صفحة الفاتورة"); });
 
     window.addEventListener("load", () => {
       if (location.hash === "#scan") showPage("scan");
@@ -739,6 +746,7 @@
       modeBadge.textContent = isAdmin ? "الوضع: إدارة" : "الوضع: مستخدم";
       adminEls.forEach(el => el.style.display = isAdmin ? "block" : "none");
       if (scanToAddBtn) scanToAddBtn.style.display = isAdmin ? "flex" : "none";
+
       if (!isAdmin) {
         mode = "none";
         selectedForEdge = null;
@@ -797,7 +805,6 @@
       return { x:sx, y:sy };
     }
 
-    // Layers (حتى نقدر نمسح/نعيد رسم الشبكة)
     const graphNodeLayer = L.layerGroup().addTo(map);
     const graphEdgeLayer = L.layerGroup().addTo(map);
     const userLayer = L.layerGroup().addTo(map);
@@ -811,9 +818,6 @@
     // Markers & Path
     // =============================
     let meMarker = null;
-    let itemMarker = null;
-    let pathLineOutline = null;
-    let pathLine = null;
 
     // =============================
     // Pick my location
@@ -826,7 +830,7 @@
     });
 
     // =============================
-    // Graph (Nodes/Edges)
+    // Graph (Nodes/Edges) + Delete Node
     // =============================
     let mode = "none";       // none | addNode | addEdge | deleteNode
     let nodes = [];          // {id, x, y, marker}
@@ -842,14 +846,11 @@
       graphNodeLayer.clearLayers();
       graphEdgeLayer.clearLayers();
 
-      // nodes
       for (const n of nodes) {
-        const m = L.circleMarker([n.y, n.x], { radius: 6 }).addTo(graphNodeLayer)
-          .bindPopup(`${n.id}<br>X=${Math.round(n.x)} Y=${Math.round(n.y)}`);
+        const m = L.circleMarker([n.y, n.x], { radius: 6 }).addTo(graphNodeLayer);
         n.marker = m;
       }
 
-      // edges (بدون تكرار)
       const drawn = new Set();
       for (const fromId in edges) {
         for (const e of (edges[fromId] || [])) {
@@ -1002,7 +1003,7 @@
     });
 
     // =============================
-    // Products (ممنوع التكرار: الاسم والباركود)
+    // Products (No duplicates: SKU + Name) + Delete Product
     // =============================
     let products = []; // { sku, name, price, x, y }
     let pickingProduct = false;
@@ -1064,12 +1065,11 @@
       if (!nameN) return { ok:false, msg:"اسم المنتج إجباري." };
       if (price === null) return { ok:false, msg:"سعر المنتج غير صحيح." };
 
-      // ممنوع التكرار نهائياً
       if (existsSku(skuN)) return { ok:false, msg:"هذا الباركود موجود مسبقًا. ممنوع التكرار." };
       if (existsName(nameN)) return { ok:false, msg:"اسم المنتج موجود مسبقًا. ممنوع التكرار." };
 
       products.push({ sku: skuN, name, price, x, y });
-      return { ok:true, msg:"تمت إضافة المنتج بنجاح." };
+      return { ok:true, msg:"تمت إضافة المنتج." };
     }
 
     document.getElementById("addProduct").addEventListener("click", () => {
@@ -1080,8 +1080,6 @@
       const price = parsePrice(document.getElementById("pprice").value);
 
       if (!sku || !name || price === null) { setStatus("أدخل (باركود + اسم + سعر) أولاً."); return; }
-
-      // تحقق مسبق قبل اختيار مكانه
       if (existsSku(sku)) { setStatus("هذا الباركود موجود مسبقًا. ممنوع التكرار."); return; }
       if (existsName(name)) { setStatus("اسم المنتج موجود مسبقًا. ممنوع التكرار."); return; }
 
@@ -1089,6 +1087,19 @@
       pickingProduct = true;
       setStatus("اضغط على الخريطة لتحديد مكان المنتج");
       showPage("map");
+    });
+
+    document.getElementById("adminFind").addEventListener("click", () => {
+      if (!isAdmin) return;
+      const query = (document.getElementById("sku").value || document.getElementById("pname").value || "").trim();
+      if (!query) { setStatus("اكتب اسم أو باركود للبحث."); return; }
+      const item = findProductBySkuOrName(query);
+      if (!item) { setStatus("المنتج غير موجود."); return; }
+      setStatus("تم العثور على: " + item.name + " | السعر: " + item.price);
+      showPage("map");
+      productLayer.clearLayers();
+      L.marker([item.y, item.x]).addTo(productLayer);
+      map.setView([item.y, item.x], map.getZoom());
     });
 
     document.getElementById("saveProducts").addEventListener("click", () => {
@@ -1110,143 +1121,46 @@
       setStatus("تم مسح المنتجات");
     });
 
-    // =============================
-    // Map click
-    // =============================
-    map.on('click', (e) => {
-      let y = e.latlng.lat;
-      let x = e.latlng.lng;
+    // ===== Admin: Delete Product =====
+    const delQueryInput = document.getElementById("delQuery");
+    const deleteProductBtn = document.getElementById("deleteProductBtn");
 
-      const snapped = snapToMap(x, y);
-      x = snapped.x; y = snapped.y;
-
-      if (pickingMe) {
-        pickingMe = false;
-        userLayer.clearLayers();
-        meMarker = L.marker([y, x]).addTo(userLayer)
-          .bindPopup(`موقعي<br>X=${Math.round(x)} Y=${Math.round(y)}`)
-          .openPopup();
-        setStatus("تم تحديد موقعك");
-        return;
-      }
-
-      if (isAdmin && pickingProduct && pendingProduct) {
-        pickingProduct = false;
-
-        // تحقق نهائي
-        const res = addProductStrict({ ...pendingProduct, x, y });
-        if (!res.ok) {
-          setStatus(res.msg);
-          pendingProduct = null;
-          return;
-        }
-
-        saveProductsToLocalStorage();
-
-        L.marker([y, x]).addTo(productLayer).bindPopup(
-          `تم الحفظ<br>Barcode: ${pendingProduct.sku}<br>اسم: ${pendingProduct.name}<br>سعر: ${pendingProduct.price}`
-        ).openPopup();
-
-        pendingProduct = null;
-        document.getElementById("sku").value = "";
-        document.getElementById("pname").value = "";
-        document.getElementById("pprice").value = "";
-        setStatus("تم حفظ المنتج على الخريطة");
-        return;
-      }
-
-      if (isAdmin && mode === "addNode") {
-        const id = "N" + (nodes.length + 1);
-        nodes.push({ id, x, y, marker: null });
-        redrawGraphLayers();
-        setStatus("تم إضافة نقطة");
-        return;
-      }
-
-      if (isAdmin && mode === "addEdge") {
-        const a = nearestNode(x, y);
-        if (!a.node) { setStatus("لا يوجد نقاط."); return; }
-
-        if (!selectedForEdge) {
-          selectedForEdge = a.node;
-          selectedForEdge.marker?.openPopup();
-          setStatus("اختر النقطة الثانية");
-        } else {
-          if (selectedForEdge.id === a.node.id) return;
-          addEdgeBidirectional(selectedForEdge.id, a.node.id);
-          selectedForEdge = null;
-          setStatus("تم الربط");
-        }
-        return;
-      }
-
-      if (isAdmin && mode === "deleteNode") {
-        const hit = nearestNode(x, y);
-        if (!hit.node || hit.d > 15) { setStatus("اقترب من النقطة لحذفها."); return; }
-
-        const delId = hit.node.id;
-
-        // حذف من nodes
-        nodes = nodes.filter(n => n.id !== delId);
-
-        // حذف edges المرتبطة
-        delete edges[delId];
-        for (const fromId in edges) {
-          edges[fromId] = (edges[fromId] || []).filter(e => e.to !== delId);
-        }
-
-        redrawGraphLayers();
-        setStatus("تم حذف النقطة: " + delId);
-        return;
-      }
-    });
-
-    // =============================
-    // Search & Navigate
-    // =============================
-    function navigateToQuery(raw){
+    function deleteProductBySkuOrName(raw) {
       const q = (raw || "").trim();
-      if (!q) { setStatus("اكتب اسم أو باركود."); return; }
+      if (!q) return { ok:false, msg:"أدخل اسم أو باركود للحذف." };
 
-      const item = findProductBySkuOrName(q);
-      if (!item) { setStatus("المنتج غير موجود."); return; }
+      const skuN = normalizeSku(q);
+      const nameN = normalizeName(q);
 
-      if (!meMarker) { setStatus("حدد موقعك أولاً."); return; }
-      if (nodes.length < 2) { setStatus("شبكة الممرات غير جاهزة."); return; }
+      const idx = products.findIndex(p =>
+        normalizeSku(p.sku) === skuN ||
+        normalizeName(p.name) === nameN
+      );
 
+      if (idx < 0) return { ok:false, msg:"العنصر غير موجود، لا يمكن حذفه." };
+
+      const removed = products[idx];
+      products.splice(idx, 1);
+      saveProductsToLocalStorage();
+
+      // إزالة من الفاتورة إذا موجود
+      if (bill && bill[removed.sku]) {
+        delete bill[removed.sku];
+        renderBill();
+      }
+
+      // تنظيف آثار الخريطة/المسار
       productLayer.clearLayers();
-      itemMarker = L.marker([item.y, item.x]).addTo(productLayer)
-        .bindPopup(`المنتج<br>${item.name}<br>Barcode: ${item.sku}<br>سعر: ${item.price}`)
-        .openPopup();
-
-      const mePos = meMarker.getLatLng();
-      const startNode = nearestNode(mePos.lng, mePos.lat).node;
-      const endNode = nearestNode(item.x, item.y).node;
-
-      if (!startNode || !endNode) { setStatus("لا توجد نقاط ممر قريبة."); return; }
-
-      const pathIds = dijkstra(startNode.id, endNode.id);
-      if (!pathIds.length) { setStatus("لا يوجد مسار. الشبكة تحتاج ربط."); return; }
-
-      const pathLatLngs = pathIds.map(id => {
-        const n = nodes.find(nn => nn.id === id);
-        return [n.y, n.x];
-      });
-      pathLatLngs.push([item.y, item.x]);
-
       pathLayer.clearLayers();
-      pathLineOutline = L.polyline(pathLatLngs, { color: "#000000", weight: 12, opacity: 0.5, lineJoin: "round", lineCap: "round" }).addTo(pathLayer);
-      pathLine = L.polyline(pathLatLngs, { color: "#00c853", weight: 8, opacity: 0.95, lineJoin: "round", lineCap: "round" }).addTo(pathLayer);
 
-      const group = L.featureGroup([meMarker, itemMarker, pathLineOutline, pathLine]);
-      map.fitBounds(group.getBounds().pad(0.2));
-
-      setStatus("تم رسم أقصر مسار إلى المنتج: " + item.name);
-      showPage("map");
+      return { ok:true, msg:`تم حذف المنتج: ${removed.name} (Barcode: ${removed.sku})` };
     }
 
-    document.getElementById("go").addEventListener("click", () => {
-      navigateToQuery(document.getElementById("q").value);
+    deleteProductBtn.addEventListener("click", () => {
+      if (!isAdmin) return;
+      const res = deleteProductBySkuOrName(delQueryInput.value);
+      setStatus(res.msg);
+      if (res.ok) delQueryInput.value = "";
     });
 
     // =============================
@@ -1262,6 +1176,7 @@
       if (!bill[p.sku]) bill[p.sku] = { sku: p.sku, name: p.name, price: Number(p.price)||0, qty: 0 };
       bill[p.sku].qty += 1;
 
+      document.getElementById("scanResult").textContent = `تمت إضافة: ${p.name} | الكمية الآن: ${bill[p.sku].qty}`;
       setStatus(`تمت إضافة ${p.name} (الكمية: ${bill[p.sku].qty})`);
       renderBill();
     }
@@ -1336,7 +1251,141 @@
     });
 
     // =============================
-    // Camera Scanner
+    // Map click logic (Me / Product placement / Node actions)
+    // =============================
+    map.on('click', (e) => {
+      let y = e.latlng.lat;
+      let x = e.latlng.lng;
+
+      const snapped = snapToMap(x, y);
+      x = snapped.x; y = snapped.y;
+
+      // تحديد موقع المستخدم
+      if (pickingMe) {
+        pickingMe = false;
+        userLayer.clearLayers();
+        meMarker = L.marker([y, x]).addTo(userLayer);
+        setStatus("تم تحديد موقعك");
+        return;
+      }
+
+      // وضع الإدارة: حفظ المنتج على الخريطة
+      if (isAdmin && pickingProduct && pendingProduct) {
+        pickingProduct = false;
+
+        const res = addProductStrict({ ...pendingProduct, x, y });
+        if (!res.ok) {
+          setStatus(res.msg);
+          pendingProduct = null;
+          return;
+        }
+
+        saveProductsToLocalStorage();
+        productLayer.clearLayers();
+        L.marker([y, x]).addTo(productLayer);
+
+        pendingProduct = null;
+        document.getElementById("sku").value = "";
+        document.getElementById("pname").value = "";
+        document.getElementById("pprice").value = "";
+        setStatus("تم حفظ المنتج على الخريطة");
+        return;
+      }
+
+      // إضافة نقطة
+      if (isAdmin && mode === "addNode") {
+        const id = "N" + (nodes.length + 1);
+        nodes.push({ id, x, y, marker: null });
+        redrawGraphLayers();
+        setStatus("تم إضافة نقطة");
+        return;
+      }
+
+      // ربط نقطتين
+      if (isAdmin && mode === "addEdge") {
+        const a = nearestNode(x, y);
+        if (!a.node) { setStatus("لا يوجد نقاط."); return; }
+
+        if (!selectedForEdge) {
+          selectedForEdge = a.node;
+          setStatus("اختر النقطة الثانية");
+        } else {
+          if (selectedForEdge.id === a.node.id) return;
+          addEdgeBidirectional(selectedForEdge.id, a.node.id);
+          selectedForEdge = null;
+          setStatus("تم الربط");
+        }
+        return;
+      }
+
+      // حذف نقطة
+      if (isAdmin && mode === "deleteNode") {
+        const hit = nearestNode(x, y);
+        if (!hit.node || hit.d > 15) { setStatus("اقترب من النقطة لحذفها."); return; }
+
+        const delId = hit.node.id;
+        nodes = nodes.filter(n => n.id !== delId);
+
+        delete edges[delId];
+        for (const fromId in edges) {
+          edges[fromId] = (edges[fromId] || []).filter(e => e.to !== delId);
+        }
+
+        redrawGraphLayers();
+        setStatus("تم حذف النقطة: " + delId);
+        return;
+      }
+    });
+
+    // =============================
+    // Search & Navigate (by name or sku)
+    // =============================
+    function navigateToQuery(raw){
+      const q = (raw || "").trim();
+      if (!q) { setStatus("اكتب اسم أو باركود."); return; }
+
+      const item = findProductBySkuOrName(q);
+      if (!item) { setStatus("المنتج غير موجود."); return; }
+
+      if (!meMarker) { setStatus("حدد موقعك أولاً."); return; }
+      if (nodes.length < 2) { setStatus("شبكة الممرات غير جاهزة."); return; }
+
+      const mePos = meMarker.getLatLng();
+      const startNode = nearestNode(mePos.lng, mePos.lat).node;
+      const endNode = nearestNode(item.x, item.y).node;
+
+      if (!startNode || !endNode) { setStatus("لا توجد نقاط ممر قريبة."); return; }
+
+      const pathIds = dijkstra(startNode.id, endNode.id);
+      if (!pathIds.length) { setStatus("لا يوجد مسار. الشبكة تحتاج ربط."); return; }
+
+      const pathLatLngs = pathIds.map(id => {
+        const n = nodes.find(nn => nn.id === id);
+        return [n.y, n.x];
+      });
+      pathLatLngs.push([item.y, item.x]);
+
+      productLayer.clearLayers();
+      pathLayer.clearLayers();
+
+      L.marker([item.y, item.x]).addTo(productLayer);
+
+      L.polyline(pathLatLngs, { color: "#000000", weight: 12, opacity: 0.5, lineJoin: "round", lineCap: "round" }).addTo(pathLayer);
+      L.polyline(pathLatLngs, { color: "#00c853", weight: 8, opacity: 0.95, lineJoin: "round", lineCap: "round" }).addTo(pathLayer);
+
+      const group = L.featureGroup([meMarker, ...productLayer.getLayers(), ...pathLayer.getLayers()]);
+      map.fitBounds(group.getBounds().pad(0.2));
+
+      setStatus("تم رسم المسار إلى: " + item.name);
+      showPage("map");
+    }
+
+    document.getElementById("go").addEventListener("click", () => {
+      navigateToQuery(document.getElementById("q").value);
+    });
+
+    // =============================
+    // Camera Scanner (Barcode only) + manual
     // =============================
     const scanOverlay = document.getElementById("scanOverlay");
     function overlayOn(){ if (scanOverlay) scanOverlay.classList.add("on"); }
@@ -1430,10 +1479,10 @@
         await scanner.start(
           camId ? { deviceId: { exact: camId } } : { facingMode: "environment" },
           {
-            fps: 20,
+            fps: 22,
             qrbox: (vw, vh) => {
               const width = Math.floor(Math.min(vw * 0.90, 440));
-              const height = Math.floor(Math.min(vh * 0.38, 220));
+              const height = Math.floor(Math.min(vh * 0.40, 230));
               return { width, height };
             },
             formatsToSupport: barcodeFormatsOnly(),
@@ -1449,15 +1498,15 @@
 
             setScanText("تمت القراءة: " + code);
 
-            // وضع الإدارة: فقط التقاط الباركود ووضعه في حقل الإدارة
+            // وضع الإدارة: التقاط الكود فقط
             if (isAdmin && scanMode === "adminCapture") {
               document.getElementById("sku").value = code;
-              setStatus("تم التقاط الباركود للإدارة. الآن أدخل الاسم والسعر ثم اضغط إضافة.");
+              setStatus("تم التقاط الباركود للإدارة. أدخل الاسم والسعر ثم اضغط إضافة.");
               scanMode = "normal";
               return;
             }
 
-            // الوضع العادي
+            // وضع المستخدم: إضافة للفاتورة
             document.getElementById("q").value = code;
             billAddBySku(code);
           },
@@ -1500,7 +1549,7 @@
       if (!isAdmin) return;
       scanMode = "adminCapture";
       showPage("scan");
-      setStatus("امسح الباركود للإدارة (لن يتم إضافة منتج هنا، فقط التقاط الكود).");
+      setStatus("امسح الباركود للإدارة (تعبئة الحقل فقط).");
       startScanner();
     });
 
@@ -1510,8 +1559,8 @@
     loadGraphFromLocalStorage();
     loadProductsFromLocalStorage();
     applyModeUI();
-    setStatus("جاهز");
     renderBill();
+    setStatus("جاهز");
 
     loggedIn = localStorage.getItem("logged_in_v2") === "1";
     if (!loggedIn) openLogin();
