@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Indoor Map + Barcode + Invoice</title>
+  <title>Indoor Map + Barcode + Cart + Invoice</title>
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Camera Scanner -->
+  <!-- html5-qrcode -->
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
@@ -304,7 +304,7 @@
     .modal h3{ margin:0 0 10px; font-size: 16px; }
     .modal p{ margin:0 0 10px; color: var(--muted); font-size: 13px; line-height: 1.6; }
 
-    /* Invoice */
+    /* Invoice table */
     .table{
       width:100%;
       border-collapse: collapse;
@@ -322,6 +322,7 @@
     .table th{ color: var(--muted); font-weight:700; background: rgba(11,18,32,.35); }
     .table tr:last-child td{ border-bottom: none; }
     .qtyBtns{ display:flex; gap: 8px; justify-content:flex-start; flex-wrap:wrap; }
+
     .chip{
       display:inline-flex;
       align-items:center;
@@ -361,7 +362,7 @@
   <div class="modalBack" id="loginModal">
     <div class="modal">
       <h3>تسجيل دخول</h3>
-      <p>نسخة تجريبية: سيظهر الكود داخل الصفحة بدل SMS (الـ SMS الحقيقي يحتاج Backend).</p>
+      <p>نسخة تجريبية: الكود يظهر داخل الصفحة بدل SMS (الـ SMS الحقيقي يحتاج Backend).</p>
 
       <div class="field">
         <label>رقم الهاتف</label>
@@ -390,7 +391,7 @@
   <div class="modalBack" id="adminModal">
     <div class="modal">
       <h3>دخول الإدارة</h3>
-      <p>للوصول للإدارة: اضغط مطولاً على عنوان النظام ثم أدخل PIN.</p>
+      <p>للوصول للإدارة: اضغط مطولاً على العنوان ثم أدخل PIN.</p>
       <div class="field">
         <label>Admin PIN</label>
         <input id="adminPin" placeholder="****" inputmode="numeric" />
@@ -403,13 +404,45 @@
     </div>
   </div>
 
+  <!-- Add To Cart Modal -->
+  <div class="modalBack" id="cartModal">
+    <div class="modal">
+      <h3>إضافة إلى العربة</h3>
+      <p id="cartInfo" style="margin:0 0 12px; color: var(--muted); font-size:13px;"></p>
+
+      <div class="row" style="margin-bottom:10px;">
+        <span class="chip" id="cartSku">Barcode: -</span>
+        <span class="chip" id="cartPrice">السعر: -</span>
+      </div>
+
+      <div class="row" style="align-items:center; margin-bottom: 10px;">
+        <span class="chip">الكمية</span>
+        <button class="btn mini" id="qtyMinus" type="button">-</button>
+        <span class="chip" id="qtyVal" style="min-width: 52px; justify-content:center;">1</span>
+        <button class="btn mini" id="qtyPlus" type="button">+</button>
+      </div>
+
+      <div class="row">
+        <button class="btn success" id="addToCartBtn" type="button">إضافة إلى العربة</button>
+        <button class="btn" id="cartCancelBtn" type="button">إلغاء</button>
+      </div>
+
+      <hr class="divider">
+      <div class="row">
+        <button class="btn primary" id="viewOnMapBtn" type="button">عرض على الخريطة (مسار)</button>
+      </div>
+
+      <p class="hint">بعد الإضافة سيتم نقلك تلقائيًا إلى صفحة الفاتورة.</p>
+    </div>
+  </div>
+
   <div class="app">
     <!-- CONTROLS -->
     <aside class="controls">
       <div class="brand" id="brandArea" title="اضغط مطولاً للدخول للإدارة">
         <div>
-          <h1>نظام خريطة متجر + باركود + فاتورة</h1>
-          <div class="hint">بحث بالاسم/الباركود + Barcode + فاتورة</div>
+          <h1>نظام خريطة متجر + باركود + عربة + فاتورة</h1>
+          <div class="hint">بحث/مسح ➜ تحديد كمية ➜ إضافة للعربة ➜ فاتورة</div>
         </div>
         <span class="pill" id="modeBadge">الوضع: مستخدم</span>
       </div>
@@ -430,12 +463,14 @@
         </div>
 
         <div class="row">
-          <button class="btn primary" id="go" type="button">اذهب إلى المنتج</button>
+          <button class="btn primary" id="go" type="button">بحث</button>
           <button class="btn" id="setMe" type="button">حدد موقعي (اضغط على الخريطة)</button>
         </div>
+
+        <p class="hint">البحث لا يضيف مباشرة. سيفتح نافذة لإضافة للعربة مع الكمية.</p>
       </div>
 
-      <!-- ADMIN (Hidden by default) -->
+      <!-- ADMIN PRODUCTS (Hidden by default) -->
       <div class="section admin-only" style="display:none;">
         <h2>إدارة المنتجات (ممنوع التكرار)</h2>
 
@@ -478,7 +513,7 @@
           <button class="btn danger" id="deleteProductBtn" type="button">حذف المنتج</button>
         </div>
 
-        <p class="hint">عند وجود تكرار: سيتم رفض الإضافة مع رسالة في شريط الحالة العلوي.</p>
+        <p class="hint">أي مشكلة أو رفض يظهر في شريط الحالة العلوي فقط.</p>
       </div>
 
       <div class="section admin-only" style="display:none;">
@@ -518,7 +553,7 @@
               <button class="btn mini danger" id="clearGraph" type="button">مسح الشبكة</button>
             </div>
 
-            <p class="hint">لا يوجد تنبيهات منبثقة. تابع كل شيء من شريط الحالة العلوي.</p>
+            <p class="hint">لا توجد تنبيهات منبثقة.</p>
           </div>
 
           <div id="map"></div>
@@ -552,12 +587,13 @@
                 <input id="manualCode" placeholder="629100..." inputmode="numeric" />
               </div>
               <div class="row">
-                <button class="btn success" id="manualAddBill" type="button">إضافة للفاتورة</button>
-                <button class="btn" id="manualSearch" type="button">بحث/ذهاب للمنتج</button>
+                <button class="btn success" id="manualOpenCart" type="button">فتح العربة لهذا المنتج</button>
+                <button class="btn" id="manualSearch" type="button">بحث / فتح العربة</button>
               </div>
+              <p class="hint">الإدخال اليدوي يفتح نافذة تحديد الكمية ثم إضافة للعربة.</p>
             </div>
 
-            <p class="hint">المسح في وضع المستخدم: يضيف المنتج للفاتورة ويحدث الكمية.</p>
+            <p class="hint">في وضع المستخدم: المسح يفتح نافذة تحديد كمية + إضافة للعربة ثم الفاتورة.</p>
           </div>
 
           <div class="card">
@@ -592,6 +628,8 @@
             </div>
 
             <div class="row" style="margin-top:12px;">
+              <button class="btn" id="continueShopping" type="button">متابعة التسوق (كاميرا)</button>
+              <button class="btn" id="backToMap" type="button">العودة للخريطة</button>
               <button class="btn danger" id="clearBill" type="button">تفريغ الفاتورة</button>
             </div>
 
@@ -616,6 +654,7 @@
     const ADMIN_PIN = "1234"; // غيّرها
     const SNAP_GRID = 6;      // تقارب نقاط الممرات (سناب)
     const MAP_MARGIN = 6;     // هامش داخل الخريطة
+    const NEAR_NODE_THRESHOLD = 15; // لحذف نقطة (قربها)
 
     // =============================
     // Status UI (بدون Alerts/Toasts)
@@ -649,7 +688,6 @@
       tabScan.classList.toggle("active", isScan);
       tabBill.classList.toggle("active", isBill);
 
-      // ممنوع ظهور بحث المستخدم داخل الفاتورة
       userSearchSection.style.display = isBill ? "none" : "block";
 
       document.body.offsetHeight;
@@ -694,7 +732,6 @@
 
     function openLogin(){ loginModal.classList.add("on"); }
     function closeLogin(){ loginModal.classList.remove("on"); }
-
     function normalizePhone(p){ return (p || "").replace(/[^\d]/g, ""); }
 
     sendOtpBtn.addEventListener("click", () => {
@@ -711,14 +748,14 @@
       if (!otpCode) { setStatus("اضغط إرسال الكود أولاً."); return; }
       if (v !== otpCode) { setStatus("الكود غير صحيح."); return; }
       loggedIn = true;
-      localStorage.setItem("logged_in_v2", "1");
+      localStorage.setItem("logged_in_v3", "1");
       closeLogin();
       setStatus("تم تسجيل الدخول.");
     });
 
     skipLoginBtn.addEventListener("click", () => {
       loggedIn = true;
-      localStorage.setItem("logged_in_v2", "1");
+      localStorage.setItem("logged_in_v3", "1");
       closeLogin();
       setStatus("تم الدخول تجريبيًا.");
     });
@@ -815,7 +852,7 @@
     window.addEventListener("resize", () => setTimeout(() => map.invalidateSize(true), 250));
 
     // =============================
-    // Markers & Path
+    // Markers
     // =============================
     let meMarker = null;
 
@@ -929,12 +966,12 @@
 
     function saveGraphToLocalStorage() {
       const payload = { nodes: nodes.map(n => ({ id: n.id, x: n.x, y: n.y })), edges };
-      localStorage.setItem("indoor_graph_v3", JSON.stringify(payload));
+      localStorage.setItem("indoor_graph_v4", JSON.stringify(payload));
     }
-    function clearGraphLocal() { localStorage.removeItem("indoor_graph_v3"); }
+    function clearGraphLocal() { localStorage.removeItem("indoor_graph_v4"); }
 
     function loadGraphFromLocalStorage() {
-      const raw = localStorage.getItem("indoor_graph_v3");
+      const raw = localStorage.getItem("indoor_graph_v4");
       if (!raw) return false;
       const payload = JSON.parse(raw);
       nodes = (payload.nodes || []).map(n => ({ ...n, marker: null }));
@@ -1030,15 +1067,15 @@
     }
 
     function saveProductsToLocalStorage() {
-      localStorage.setItem("indoor_products_v3", JSON.stringify(products));
+      localStorage.setItem("indoor_products_v4", JSON.stringify(products));
     }
     function loadProductsFromLocalStorage() {
-      const raw = localStorage.getItem("indoor_products_v3");
+      const raw = localStorage.getItem("indoor_products_v4");
       if (!raw) return false;
       products = JSON.parse(raw) || [];
       return true;
     }
-    function clearProductsLocal() { localStorage.removeItem("indoor_products_v3"); }
+    function clearProductsLocal() { localStorage.removeItem("indoor_products_v4"); }
 
     function findProductBySkuOrName(q){
       const s = normalizeSku(q);
@@ -1095,7 +1132,7 @@
       if (!query) { setStatus("اكتب اسم أو باركود للبحث."); return; }
       const item = findProductBySkuOrName(query);
       if (!item) { setStatus("المنتج غير موجود."); return; }
-      setStatus("تم العثور على: " + item.name + " | السعر: " + item.price);
+      setStatus("تم العثور على: " + item.name + " | السعر: " + Number(item.price).toFixed(2));
       showPage("map");
       productLayer.clearLayers();
       L.marker([item.y, item.x]).addTo(productLayer);
@@ -1149,7 +1186,6 @@
         renderBill();
       }
 
-      // تنظيف آثار الخريطة/المسار
       productLayer.clearLayers();
       pathLayer.clearLayers();
 
@@ -1168,19 +1204,6 @@
     // =============================
     let bill = {}; // sku -> {sku,name,price,qty}
 
-    function billAddBySku(sku){
-      const s = normalizeSku(sku);
-      const p = products.find(x => normalizeSku(x.sku) === s);
-      if (!p) { setStatus("هذا الباركود غير مسجّل (اطلب من الإدارة إضافته)."); return; }
-
-      if (!bill[p.sku]) bill[p.sku] = { sku: p.sku, name: p.name, price: Number(p.price)||0, qty: 0 };
-      bill[p.sku].qty += 1;
-
-      document.getElementById("scanResult").textContent = `تمت إضافة: ${p.name} | الكمية الآن: ${bill[p.sku].qty}`;
-      setStatus(`تمت إضافة ${p.name} (الكمية: ${bill[p.sku].qty})`);
-      renderBill();
-    }
-
     function billTotal(){
       let total = 0;
       Object.values(bill).forEach(i => total += (i.price * i.qty));
@@ -1198,7 +1221,7 @@
 
         tr.innerHTML = `
           <td>${item.name}<br><span style="color:rgba(169,182,212,.85); font-size:12px;">${item.sku}</span></td>
-          <td>${item.price}</td>
+          <td>${Number(item.price).toFixed(2)}</td>
           <td>${item.qty}</td>
           <td>${line.toFixed(2)}</td>
           <td>
@@ -1215,6 +1238,22 @@
       document.getElementById("billCount").textContent = "عدد الأصناف: " + items.length;
       document.getElementById("billTotal").textContent = "المجموع: " + billTotal().toFixed(2);
     }
+
+    document.getElementById("billTable").addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const act = btn.getAttribute("data-act");
+      const sku = btn.getAttribute("data-sku");
+      if (!act || !sku) return;
+
+      if (!bill[sku]) return;
+      if (act === "plus") bill[sku].qty += 1;
+      if (act === "minus") bill[sku].qty = Math.max(1, bill[sku].qty - 1);
+      if (act === "del") delete bill[sku];
+
+      renderBill();
+      setStatus("تم تحديث الفاتورة.");
+    });
 
     document.getElementById("clearBill").addEventListener("click", () => {
       bill = {};
@@ -1234,20 +1273,91 @@
       setStatus("تم الدفع بالبطاقة (محاكاة). الإجمالي: " + t.toFixed(2));
     });
 
-    document.getElementById("billTable").addEventListener("click", (e) => {
-      const btn = e.target.closest("button");
-      if (!btn) return;
-      const act = btn.getAttribute("data-act");
-      const sku = btn.getAttribute("data-sku");
-      if (!act || !sku) return;
+    document.getElementById("continueShopping").addEventListener("click", () => {
+      showPage("scan");
+      setStatus("متابعة التسوق: صفحة الكاميرا");
+    });
 
-      if (!bill[sku]) return;
-      if (act === "plus") bill[sku].qty += 1;
-      if (act === "minus") bill[sku].qty = Math.max(1, bill[sku].qty - 1);
-      if (act === "del") delete bill[sku];
+    document.getElementById("backToMap").addEventListener("click", () => {
+      showPage("map");
+      setStatus("العودة إلى الخريطة");
+    });
+
+    // =============================
+    // Add To Cart Modal Logic
+    // =============================
+    const cartModal = document.getElementById("cartModal");
+    const cartInfo  = document.getElementById("cartInfo");
+    const cartSku   = document.getElementById("cartSku");
+    const cartPrice = document.getElementById("cartPrice");
+    const qtyVal    = document.getElementById("qtyVal");
+
+    const qtyMinus  = document.getElementById("qtyMinus");
+    const qtyPlus   = document.getElementById("qtyPlus");
+    const addToCartBtn = document.getElementById("addToCartBtn");
+    const cartCancelBtn = document.getElementById("cartCancelBtn");
+    const viewOnMapBtn  = document.getElementById("viewOnMapBtn");
+
+    let selectedProduct = null;
+    let selectedQty = 1;
+
+    function openCartModal(product, sourceText){
+      selectedProduct = product;
+      selectedQty = 1;
+
+      cartInfo.textContent = sourceText || "تم العثور على المنتج. اختر الكمية ثم أضف للعربة.";
+      cartSku.textContent = "Barcode: " + product.sku;
+      cartPrice.textContent = "السعر: " + Number(product.price).toFixed(2);
+      qtyVal.textContent = String(selectedQty);
+
+      cartModal.classList.add("on");
+    }
+
+    function closeCartModal(){
+      cartModal.classList.remove("on");
+      selectedProduct = null;
+      selectedQty = 1;
+    }
+
+    qtyMinus.addEventListener("click", () => {
+      selectedQty = Math.max(1, selectedQty - 1);
+      qtyVal.textContent = String(selectedQty);
+    });
+
+    qtyPlus.addEventListener("click", () => {
+      selectedQty = Math.min(99, selectedQty + 1);
+      qtyVal.textContent = String(selectedQty);
+    });
+
+    cartCancelBtn.addEventListener("click", () => {
+      closeCartModal();
+      setStatus("تم الإلغاء.");
+    });
+
+    addToCartBtn.addEventListener("click", () => {
+      if (!selectedProduct) { setStatus("لا يوجد منتج محدد."); return; }
+
+      const sku = normalizeSku(selectedProduct.sku);
+      if (!bill[sku]) {
+        bill[sku] = {
+          sku: sku,
+          name: selectedProduct.name,
+          price: Number(selectedProduct.price) || 0,
+          qty: 0
+        };
+      }
+      bill[sku].qty += selectedQty;
 
       renderBill();
-      setStatus("تم تحديث الفاتورة.");
+      closeCartModal();
+      setStatus(`تمت إضافة ${selectedProduct.name} (الكمية: ${selectedQty})`);
+      showPage("bill");
+    });
+
+    viewOnMapBtn.addEventListener("click", () => {
+      if (!selectedProduct) return;
+      closeCartModal();
+      navigateToQuery(selectedProduct.sku);
     });
 
     // =============================
@@ -1260,7 +1370,6 @@
       const snapped = snapToMap(x, y);
       x = snapped.x; y = snapped.y;
 
-      // تحديد موقع المستخدم
       if (pickingMe) {
         pickingMe = false;
         userLayer.clearLayers();
@@ -1269,7 +1378,7 @@
         return;
       }
 
-      // وضع الإدارة: حفظ المنتج على الخريطة
+      // Admin: Save product location on map
       if (isAdmin && pickingProduct && pendingProduct) {
         pickingProduct = false;
 
@@ -1292,7 +1401,7 @@
         return;
       }
 
-      // إضافة نقطة
+      // Admin: Add node
       if (isAdmin && mode === "addNode") {
         const id = "N" + (nodes.length + 1);
         nodes.push({ id, x, y, marker: null });
@@ -1301,7 +1410,7 @@
         return;
       }
 
-      // ربط نقطتين
+      // Admin: Add edge
       if (isAdmin && mode === "addEdge") {
         const a = nearestNode(x, y);
         if (!a.node) { setStatus("لا يوجد نقاط."); return; }
@@ -1318,10 +1427,10 @@
         return;
       }
 
-      // حذف نقطة
+      // Admin: Delete node
       if (isAdmin && mode === "deleteNode") {
         const hit = nearestNode(x, y);
-        if (!hit.node || hit.d > 15) { setStatus("اقترب من النقطة لحذفها."); return; }
+        if (!hit.node || hit.d > NEAR_NODE_THRESHOLD) { setStatus("اقترب من النقطة لحذفها."); return; }
 
         const delId = hit.node.id;
         nodes = nodes.filter(n => n.id !== delId);
@@ -1338,8 +1447,10 @@
     });
 
     // =============================
-    // Search & Navigate (by name or sku)
+    // Search & Navigate (by name or sku) -> opens cart modal
     // =============================
+    const scanResult = document.getElementById("scanResult");
+
     function navigateToQuery(raw){
       const q = (raw || "").trim();
       if (!q) { setStatus("اكتب اسم أو باركود."); return; }
@@ -1381,46 +1492,54 @@
     }
 
     document.getElementById("go").addEventListener("click", () => {
-      navigateToQuery(document.getElementById("q").value);
+      const raw = document.getElementById("q").value;
+      const item = findProductBySkuOrName(raw);
+      if (!item) { setStatus("المنتج غير موجود."); return; }
+      openCartModal(item, "تم العثور على المنتج عبر البحث. اختر الكمية ثم أضف للعربة.");
     });
 
     // =============================
-    // Camera Scanner (Barcode only) + manual
+    // Camera Scanner (Barcode only) -> opens cart modal
     // =============================
     const scanOverlay = document.getElementById("scanOverlay");
     function overlayOn(){ if (scanOverlay) scanOverlay.classList.add("on"); }
     function overlayOff(){ if (scanOverlay) scanOverlay.classList.remove("on"); }
 
-    const scanResult = document.getElementById("scanResult");
     const startScanBtn = document.getElementById("startScan");
     const stopScanBtn = document.getElementById("stopScan");
 
     const toggleManualBtn = document.getElementById("toggleManual");
     const manualBox = document.getElementById("manualBox");
     const manualCode = document.getElementById("manualCode");
-    const manualAddBill = document.getElementById("manualAddBill");
+    const manualOpenCart = document.getElementById("manualOpenCart");
     const manualSearch = document.getElementById("manualSearch");
 
     toggleManualBtn.addEventListener("click", () => {
       manualBox.style.display = (manualBox.style.display === "none") ? "block" : "none";
     });
 
-    manualAddBill.addEventListener("click", () => {
+    function openCartByCodeOrQuery(raw, sourceMsg){
+      const item = findProductBySkuOrName(raw);
+      if (!item) { setStatus("المنتج غير موجود / غير مسجّل."); scanResult.textContent = "المنتج غير مسجّل."; return; }
+      openCartModal(item, sourceMsg);
+    }
+
+    manualOpenCart.addEventListener("click", () => {
       const code = (manualCode.value || "").trim();
       if (!code) { setStatus("أدخل باركود يدويًا."); return; }
-      billAddBySku(code);
+      openCartByCodeOrQuery(code, "تم إدخال الباركود يدويًا. اختر الكمية ثم أضف للعربة.");
     });
 
     manualSearch.addEventListener("click", () => {
-      const code = (manualCode.value || "").trim();
-      if (!code) { setStatus("أدخل باركود يدويًا."); return; }
-      document.getElementById("q").value = code;
-      navigateToQuery(code);
+      const q = (manualCode.value || "").trim();
+      if (!q) { setStatus("أدخل باركود/اسم يدويًا."); return; }
+      openCartByCodeOrQuery(q, "بحث يدوي. اختر الكمية ثم أضف للعربة.");
     });
 
     let scanner = null;
     let scanning = false;
     let scanMode = "normal"; // normal | adminCapture
+    let scanLock = false;
 
     function setScanText(msg){ scanResult.textContent = msg; }
 
@@ -1479,7 +1598,7 @@
         await scanner.start(
           camId ? { deviceId: { exact: camId } } : { facingMode: "environment" },
           {
-            fps: 22,
+            fps: 25,
             qrbox: (vw, vh) => {
               const width = Math.floor(Math.min(vw * 0.90, 440));
               const height = Math.floor(Math.min(vh * 0.40, 230));
@@ -1492,23 +1611,38 @@
             defaultZoomValueIfSupported: 2
           },
           async (decodedText) => {
-            const code = String(decodedText||"").trim();
             if (!scanning) return;
+            if (scanLock) return;
+
+            const code = String(decodedText||"").trim();
             if (!looksLikeBarcode(code)) return;
 
+            scanLock = true;
             setScanText("تمت القراءة: " + code);
 
-            // وضع الإدارة: التقاط الكود فقط
+            // Admin: capture only
             if (isAdmin && scanMode === "adminCapture") {
               document.getElementById("sku").value = code;
               setStatus("تم التقاط الباركود للإدارة. أدخل الاسم والسعر ثم اضغط إضافة.");
               scanMode = "normal";
+              scanLock = false;
               return;
             }
 
-            // وضع المستخدم: إضافة للفاتورة
-            document.getElementById("q").value = code;
-            billAddBySku(code);
+            // User: open cart modal (stop scanner to avoid repeated scans)
+            await stopScanner(true);
+            scanning = false;
+
+            const item = products.find(p => normalizeSku(p.sku) === normalizeSku(code));
+            if (!item) {
+              setStatus("هذا الباركود غير مسجّل (اطلب من الإدارة إضافته).");
+              setScanText("المنتج غير مسجّل.");
+              scanLock = false;
+              return;
+            }
+
+            openCartModal(item, "تم مسح الباركود. اختر الكمية ثم أضف للعربة.");
+            scanLock = false;
           },
           () => {}
         );
@@ -1535,6 +1669,7 @@
       } finally {
         scanning = false;
         overlayOff();
+        scanLock = false;
         if (!silent){
           setScanText("تم إيقاف الكاميرا.");
           setStatus("تم إيقاف الكاميرا");
@@ -1562,7 +1697,7 @@
     renderBill();
     setStatus("جاهز");
 
-    loggedIn = localStorage.getItem("logged_in_v2") === "1";
+    loggedIn = localStorage.getItem("logged_in_v3") === "1";
     if (!loggedIn) openLogin();
 
     setTimeout(() => map.invalidateSize(true), 300);
