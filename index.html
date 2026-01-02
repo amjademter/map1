@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Barcode Scanner فقط</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    body { font-family: Arial; margin: 20px; text-align: center; }
+    #reader { width: 320px; margin: 0 auto; }
+    #out { margin-top: 14px; font-size: 18px; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<h3>ماسح باركود فقط</h3>
+<div id="reader"></div>
+<div id="out">وجّه الكاميرا على الباركود…</div>
+
+<script>
+  const out = document.getElementById("out");
+
+  // تحقق بسيط: الباركود غالباً أرقام (EAN/UPC)، وقد يكون Code128 فيه أحرف
+  // هنا سنقبل: (1) أرقام فقط بطول شائع 8/12/13/14
+  // أو (2) أي نص غير "QR-" إن ظهر — لكن الأهم: نمنع QR صراحة
+  function isLikelyBarcode(text) {
+    // EAN-8 / UPC-A(12) / EAN-13 / ITF-14
+    if (/^\d{8}$/.test(text)) return true;
+    if (/^\d{12}$/.test(text)) return true;
+    if (/^\d{13}$/.test(text)) return true;
+    if (/^\d{14}$/.test(text)) return true;
+
+    // بعض الباركود مثل Code128 قد يحتوي أحرف؛ اقبل نص قصير بدون مسافات
+    if (/^[A-Za-z0-9\-\._]{4,32}$/.test(text)) return true;
+
+    return false;
+  }
+
+  function onScanSuccess(decodedText, decodedResult) {
+    // تجاهل QR صراحة: كثير مرات تكون النتيجة URL أو نص طويل فيه رموز/مسافات
+    // إذا بدك تشديد أكثر: اقبل فقط أرقام (احذف جزء Code128)
+    if (!isLikelyBarcode(decodedText)) return;
+
+    out.textContent = "Barcode: " + decodedText;
+
+    // إذا بدك يوقف بعد أول قراءة:
+    html5QrCode.stop().catch(() => {});
+  }
+
+  const html5QrCode = new Html5Qrcode("reader");
+
+  html5QrCode.start(
+    { facingMode: "environment" },   // كاميرا خلفية
+    { fps: 12, qrbox: 240 },         // إعدادات مسح
+    onScanSuccess,
+    (err) => { /* تجاهل أخطاء الإطار */ }
+  );
+</script>
+
+</body>
+</html>
