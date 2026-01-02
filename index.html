@@ -442,7 +442,7 @@
       <div class="brand" id="brandArea" title="اضغط مطولاً للدخول للإدارة">
         <div>
           <h1>نظام خريطة متجر + باركود + عربة + فاتورة</h1>
-          <div class="hint">بحث/مسح ➜ تحديد كمية ➜ إضافة للعربة ➜ فاتورة</div>
+          <div class="hint">بحث/مسح ➜ تحديد موقعك ➜ تحديد كمية ➜ إضافة للعربة ➜ فاتورة</div>
         </div>
         <span class="pill" id="modeBadge">الوضع: مستخدم</span>
       </div>
@@ -464,10 +464,9 @@
 
         <div class="row">
           <button class="btn primary" id="go" type="button">بحث</button>
-          <button class="btn" id="setMe" type="button">حدد موقعي (اضغط على الخريطة)</button>
         </div>
 
-        <p class="hint">البحث لا يضيف مباشرة. سيفتح نافذة لإضافة للعربة مع الكمية.</p>
+        <p class="hint">بعد اختيار المنتج ستظهر رسالة: "هسا حدد موقعك على الخريطة".</p>
       </div>
 
       <!-- ADMIN PRODUCTS (Hidden by default) -->
@@ -583,17 +582,16 @@
 
             <div id="manualBox" style="display:none; margin-top:10px;">
               <div class="field">
-                <label>إدخال يدوي (باركود)</label>
-                <input id="manualCode" placeholder="629100..." inputmode="numeric" />
+                <label>إدخال يدوي (باركود/اسم)</label>
+                <input id="manualCode" placeholder="629100... أو حليب" />
               </div>
               <div class="row">
-                <button class="btn success" id="manualOpenCart" type="button">فتح العربة لهذا المنتج</button>
-                <button class="btn" id="manualSearch" type="button">بحث / فتح العربة</button>
+                <button class="btn success" id="manualOpenCart" type="button">فتح اختيار المنتج</button>
               </div>
-              <p class="hint">الإدخال اليدوي يفتح نافذة تحديد الكمية ثم إضافة للعربة.</p>
+              <p class="hint">الإدخال اليدوي يطلب منك تحديد موقعك ثم يفتح نافذة تحديد الكمية.</p>
             </div>
 
-            <p class="hint">في وضع المستخدم: المسح يفتح نافذة تحديد كمية + إضافة للعربة ثم الفاتورة.</p>
+            <p class="hint">في وضع المستخدم: المسح ➜ تحديد موقعك ➜ نافذة تحديد كمية ➜ إضافة للعربة ➜ فاتورة.</p>
           </div>
 
           <div class="card">
@@ -652,12 +650,12 @@
     // Config
     // =============================
     const ADMIN_PIN = "1234"; // غيّرها
-    const SNAP_GRID = 6;      // تقارب نقاط الممرات (سناب)
-    const MAP_MARGIN = 6;     // هامش داخل الخريطة
-    const NEAR_NODE_THRESHOLD = 15; // لحذف نقطة (قربها)
+    const SNAP_GRID = 6;
+    const MAP_MARGIN = 6;
+    const NEAR_NODE_THRESHOLD = 15;
 
     // =============================
-    // Status UI (بدون Alerts/Toasts)
+    // Status UI
     // =============================
     const statusText = document.getElementById("statusText");
     const buildModeText = document.getElementById("buildModeText");
@@ -857,14 +855,29 @@
     let meMarker = null;
 
     // =============================
-    // Pick my location
+    // Pick my location (بعد اختيار المنتج)
     // =============================
     let pickingMe = false;
-    document.getElementById("setMe").addEventListener("click", () => {
+    let pendingUserProduct = null;     // المنتج الذي اختاره المستخدم
+    let pendingUserSourceText = "";    // نص مصدر الاختيار (بحث/مسح)
+
+    function startPickMeForProduct(item, sourceText){
+      pendingUserProduct = item;
+      pendingUserSourceText = sourceText || "تم اختيار المنتج. اختر الكمية ثم أضف للعربة.";
       pickingMe = true;
-      setStatus("اضغط على الخريطة لتحديد موقعك");
+
+      // ضع علامة المنتج
+      productLayer.clearLayers();
+      L.marker([item.y, item.x]).addTo(productLayer);
+
+      // انتقل للخريطة واطلب تحديد موقع المستخدم
+      stopScanner(true);
       showPage("map");
-    });
+      setStatus("تم تحديد المنتج. هسا حدد موقعك على الخريطة.");
+
+      // اقتراب من المنتج لتسهيل تحديد موقعك
+      map.setView([item.y, item.x], map.getZoom());
+    }
 
     // =============================
     // Graph (Nodes/Edges) + Delete Node
@@ -980,7 +993,8 @@
       return true;
     }
 
-    document.getElementById("addNode").addEventListener("click", () => {
+    const addNodeBtn = document.getElementById("addNode");
+    if (addNodeBtn) addNodeBtn.addEventListener("click", () => {
       if (!isAdmin) return;
       mode = "addNode";
       selectedForEdge = null;
@@ -989,7 +1003,8 @@
       showPage("map");
     });
 
-    document.getElementById("addEdge").addEventListener("click", () => {
+    const addEdgeBtn = document.getElementById("addEdge");
+    if (addEdgeBtn) addEdgeBtn.addEventListener("click", () => {
       if (!isAdmin) return;
       mode = "addEdge";
       selectedForEdge = null;
@@ -998,7 +1013,8 @@
       showPage("map");
     });
 
-    document.getElementById("deleteNode").addEventListener("click", () => {
+    const deleteNodeBtn = document.getElementById("deleteNode");
+    if (deleteNodeBtn) deleteNodeBtn.addEventListener("click", () => {
       if (!isAdmin) return;
       mode = "deleteNode";
       selectedForEdge = null;
@@ -1007,7 +1023,8 @@
       showPage("map");
     });
 
-    document.getElementById("stopMode").addEventListener("click", () => {
+    const stopModeBtn = document.getElementById("stopMode");
+    if (stopModeBtn) stopModeBtn.addEventListener("click", () => {
       if (!isAdmin) return;
       mode = "none";
       selectedForEdge = null;
@@ -1015,14 +1032,16 @@
       setStatus("تم إيقاف وضع الممرات");
     });
 
-    document.getElementById("saveGraph").addEventListener("click", () => {
+    const saveGraphBtn = document.getElementById("saveGraph");
+    if (saveGraphBtn) saveGraphBtn.addEventListener("click", () => {
       if (!isAdmin) return;
       if (nodes.length < 2) { setStatus("لا يوجد شبكة كافية للحفظ."); return; }
       saveGraphToLocalStorage();
       setStatus("تم حفظ الشبكة");
     });
 
-    document.getElementById("loadGraph").addEventListener("click", () => {
+    const loadGraphBtn = document.getElementById("loadGraph");
+    if (loadGraphBtn) loadGraphBtn.addEventListener("click", () => {
       if (!isAdmin) return;
       const ok = loadGraphFromLocalStorage();
       setStatus(ok ? "تم تحميل الشبكة" : "لا توجد شبكة محفوظة");
@@ -1030,7 +1049,8 @@
       setTimeout(() => map.invalidateSize(true), 250);
     });
 
-    document.getElementById("clearGraph").addEventListener("click", () => {
+    const clearGraphBtn = document.getElementById("clearGraph");
+    if (clearGraphBtn) clearGraphBtn.addEventListener("click", () => {
       if (!isAdmin) return;
       clearGraphLocal();
       nodes = [];
@@ -1109,7 +1129,8 @@
       return { ok:true, msg:"تمت إضافة المنتج." };
     }
 
-    document.getElementById("addProduct").addEventListener("click", () => {
+    const addProductBtn = document.getElementById("addProduct");
+    if (addProductBtn) addProductBtn.addEventListener("click", () => {
       if (!isAdmin) return;
 
       const sku = document.getElementById("sku").value.trim();
@@ -1126,7 +1147,8 @@
       showPage("map");
     });
 
-    document.getElementById("adminFind").addEventListener("click", () => {
+    const adminFindBtn = document.getElementById("adminFind");
+    if (adminFindBtn) adminFindBtn.addEventListener("click", () => {
       if (!isAdmin) return;
       const query = (document.getElementById("sku").value || document.getElementById("pname").value || "").trim();
       if (!query) { setStatus("اكتب اسم أو باركود للبحث."); return; }
@@ -1139,26 +1161,29 @@
       map.setView([item.y, item.x], map.getZoom());
     });
 
-    document.getElementById("saveProducts").addEventListener("click", () => {
+    const saveProductsBtn = document.getElementById("saveProducts");
+    if (saveProductsBtn) saveProductsBtn.addEventListener("click", () => {
       if (!isAdmin) return;
       saveProductsToLocalStorage();
       setStatus("تم حفظ المنتجات");
     });
 
-    document.getElementById("loadProducts").addEventListener("click", () => {
+    const loadProductsBtn = document.getElementById("loadProducts");
+    if (loadProductsBtn) loadProductsBtn.addEventListener("click", () => {
       if (!isAdmin) return;
       const ok = loadProductsFromLocalStorage();
       setStatus(ok ? "تم تحميل المنتجات" : "لا توجد منتجات محفوظة");
     });
 
-    document.getElementById("clearProducts").addEventListener("click", () => {
+    const clearProductsBtn = document.getElementById("clearProducts");
+    if (clearProductsBtn) clearProductsBtn.addEventListener("click", () => {
       if (!isAdmin) return;
       clearProductsLocal();
       products = [];
       setStatus("تم مسح المنتجات");
     });
 
-    // ===== Admin: Delete Product =====
+    // Admin: Delete Product
     const delQueryInput = document.getElementById("delQuery");
     const deleteProductBtn = document.getElementById("deleteProductBtn");
 
@@ -1180,7 +1205,6 @@
       products.splice(idx, 1);
       saveProductsToLocalStorage();
 
-      // إزالة من الفاتورة إذا موجود
       if (bill && bill[removed.sku]) {
         delete bill[removed.sku];
         renderBill();
@@ -1192,7 +1216,7 @@
       return { ok:true, msg:`تم حذف المنتج: ${removed.name} (Barcode: ${removed.sku})` };
     }
 
-    deleteProductBtn.addEventListener("click", () => {
+    if (deleteProductBtn) deleteProductBtn.addEventListener("click", () => {
       if (!isAdmin) return;
       const res = deleteProductBySkuOrName(delQueryInput.value);
       setStatus(res.msg);
@@ -1354,10 +1378,59 @@
       showPage("bill");
     });
 
+    // =============================
+    // Route drawing (مهم للخط الأخضر)
+    // =============================
+    function drawRouteToItem(item){
+      if (!meMarker) { setStatus("هسا حدد موقعك على الخريطة."); return false; }
+      if (nodes.length < 2) { setStatus("شبكة الممرات غير جاهزة."); return false; }
+
+      const mePos = meMarker.getLatLng();
+      const startNode = nearestNode(mePos.lng, mePos.lat).node;
+      const endNode = nearestNode(item.x, item.y).node;
+
+      if (!startNode || !endNode) { setStatus("لا توجد نقاط ممر قريبة."); return false; }
+
+      const pathIds = dijkstra(startNode.id, endNode.id);
+      if (!pathIds.length) { setStatus("لا يوجد مسار. الشبكة تحتاج ربط."); return false; }
+
+      const pathLatLngs = pathIds.map(id => {
+        const n = nodes.find(nn => nn.id === id);
+        return [n.y, n.x];
+      });
+      pathLatLngs.push([item.y, item.x]);
+
+      productLayer.clearLayers();
+      pathLayer.clearLayers();
+
+      const mk = L.marker([item.y, item.x]).addTo(productLayer);
+      const outline = L.polyline(pathLatLngs, { color: "#000000", weight: 12, opacity: 0.5, lineJoin: "round", lineCap: "round" }).addTo(pathLayer);
+      const green   = L.polyline(pathLatLngs, { color: "#00c853", weight: 8, opacity: 0.95, lineJoin: "round", lineCap: "round" }).addTo(pathLayer);
+
+      // تأكيد الطبقات فوق بعضها
+      if (outline.bringToFront) outline.bringToFront();
+      if (green.bringToFront) green.bringToFront();
+      if (mk.bringToFront) mk.bringToFront();
+
+      const group = L.featureGroup([meMarker, ...productLayer.getLayers(), ...pathLayer.getLayers()]);
+      map.fitBounds(group.getBounds().pad(0.2));
+
+      setStatus("تم رسم المسار إلى: " + item.name);
+      showPage("map");
+      return true;
+    }
+
+    // زر عرض المسار من المودال
     viewOnMapBtn.addEventListener("click", () => {
       if (!selectedProduct) return;
       closeCartModal();
-      navigateToQuery(selectedProduct.sku);
+
+      // إذا لا يوجد موقع للمستخدم -> اطلب تحديده
+      if (!meMarker) {
+        startPickMeForProduct(selectedProduct, "اختر الكمية ثم أضف للعربة.");
+        return;
+      }
+      drawRouteToItem(selectedProduct);
     });
 
     // =============================
@@ -1370,11 +1443,25 @@
       const snapped = snapToMap(x, y);
       x = snapped.x; y = snapped.y;
 
+      // المستخدم يحدد موقعه بعد اختيار المنتج
       if (pickingMe) {
         pickingMe = false;
+
         userLayer.clearLayers();
         meMarker = L.marker([y, x]).addTo(userLayer);
+
         setStatus("تم تحديد موقعك");
+
+        // حاول رسم المسار (وإذا فشل، لا تمنع فتح العربة)
+        const item = pendingUserProduct;
+        const src  = pendingUserSourceText;
+        pendingUserProduct = null;
+        pendingUserSourceText = "";
+
+        if (item) {
+          drawRouteToItem(item);
+          openCartModal(item, src);
+        }
         return;
       }
 
@@ -1447,60 +1534,21 @@
     });
 
     // =============================
-    // Search & Navigate (by name or sku) -> opens cart modal
+    // Search (by name or sku) -> تحديد موقع المستخدم ثم فتح العربة
     // =============================
-    const scanResult = document.getElementById("scanResult");
-
-    function navigateToQuery(raw){
-      const q = (raw || "").trim();
-      if (!q) { setStatus("اكتب اسم أو باركود."); return; }
-
-      const item = findProductBySkuOrName(q);
-      if (!item) { setStatus("المنتج غير موجود."); return; }
-
-      if (!meMarker) { setStatus("حدد موقعك أولاً."); return; }
-      if (nodes.length < 2) { setStatus("شبكة الممرات غير جاهزة."); return; }
-
-      const mePos = meMarker.getLatLng();
-      const startNode = nearestNode(mePos.lng, mePos.lat).node;
-      const endNode = nearestNode(item.x, item.y).node;
-
-      if (!startNode || !endNode) { setStatus("لا توجد نقاط ممر قريبة."); return; }
-
-      const pathIds = dijkstra(startNode.id, endNode.id);
-      if (!pathIds.length) { setStatus("لا يوجد مسار. الشبكة تحتاج ربط."); return; }
-
-      const pathLatLngs = pathIds.map(id => {
-        const n = nodes.find(nn => nn.id === id);
-        return [n.y, n.x];
-      });
-      pathLatLngs.push([item.y, item.x]);
-
-      productLayer.clearLayers();
-      pathLayer.clearLayers();
-
-      L.marker([item.y, item.x]).addTo(productLayer);
-
-      L.polyline(pathLatLngs, { color: "#000000", weight: 12, opacity: 0.5, lineJoin: "round", lineCap: "round" }).addTo(pathLayer);
-      L.polyline(pathLatLngs, { color: "#00c853", weight: 8, opacity: 0.95, lineJoin: "round", lineCap: "round" }).addTo(pathLayer);
-
-      const group = L.featureGroup([meMarker, ...productLayer.getLayers(), ...pathLayer.getLayers()]);
-      map.fitBounds(group.getBounds().pad(0.2));
-
-      setStatus("تم رسم المسار إلى: " + item.name);
-      showPage("map");
-    }
-
     document.getElementById("go").addEventListener("click", () => {
       const raw = document.getElementById("q").value;
       const item = findProductBySkuOrName(raw);
       if (!item) { setStatus("المنتج غير موجود."); return; }
-      openCartModal(item, "تم العثور على المنتج عبر البحث. اختر الكمية ثم أضف للعربة.");
+
+      // دائمًا: بعد اختيار المنتج -> اطلب من المستخدم تحديد موقعه
+      startPickMeForProduct(item, "تم العثور على المنتج عبر البحث. اختر الكمية ثم أضف للعربة.");
     });
 
     // =============================
-    // Camera Scanner (Barcode only) -> opens cart modal
+    // Camera Scanner (Barcode only) -> تحديد موقع المستخدم ثم فتح العربة
     // =============================
+    const scanResult = document.getElementById("scanResult");
     const scanOverlay = document.getElementById("scanOverlay");
     function overlayOn(){ if (scanOverlay) scanOverlay.classList.add("on"); }
     function overlayOff(){ if (scanOverlay) scanOverlay.classList.remove("on"); }
@@ -1512,28 +1560,19 @@
     const manualBox = document.getElementById("manualBox");
     const manualCode = document.getElementById("manualCode");
     const manualOpenCart = document.getElementById("manualOpenCart");
-    const manualSearch = document.getElementById("manualSearch");
 
     toggleManualBtn.addEventListener("click", () => {
       manualBox.style.display = (manualBox.style.display === "none") ? "block" : "none";
     });
 
-    function openCartByCodeOrQuery(raw, sourceMsg){
-      const item = findProductBySkuOrName(raw);
-      if (!item) { setStatus("المنتج غير موجود / غير مسجّل."); scanResult.textContent = "المنتج غير مسجّل."; return; }
-      openCartModal(item, sourceMsg);
-    }
-
     manualOpenCart.addEventListener("click", () => {
-      const code = (manualCode.value || "").trim();
-      if (!code) { setStatus("أدخل باركود يدويًا."); return; }
-      openCartByCodeOrQuery(code, "تم إدخال الباركود يدويًا. اختر الكمية ثم أضف للعربة.");
-    });
-
-    manualSearch.addEventListener("click", () => {
       const q = (manualCode.value || "").trim();
       if (!q) { setStatus("أدخل باركود/اسم يدويًا."); return; }
-      openCartByCodeOrQuery(q, "بحث يدوي. اختر الكمية ثم أضف للعربة.");
+
+      const item = findProductBySkuOrName(q);
+      if (!item) { setStatus("المنتج غير موجود / غير مسجّل."); scanResult.textContent = "المنتج غير مسجّل."; return; }
+
+      startPickMeForProduct(item, "تم اختيار المنتج بالإدخال اليدوي. اختر الكمية ثم أضف للعربة.");
     });
 
     let scanner = null;
@@ -1629,9 +1668,8 @@
               return;
             }
 
-            // User: open cart modal (stop scanner to avoid repeated scans)
+            // User flow: stop scanner then ask user to pick location
             await stopScanner(true);
-            scanning = false;
 
             const item = products.find(p => normalizeSku(p.sku) === normalizeSku(code));
             if (!item) {
@@ -1641,7 +1679,7 @@
               return;
             }
 
-            openCartModal(item, "تم مسح الباركود. اختر الكمية ثم أضف للعربة.");
+            startPickMeForProduct(item, "تم مسح الباركود. اختر الكمية ثم أضف للعربة.");
             scanLock = false;
           },
           () => {}
@@ -1680,7 +1718,7 @@
     startScanBtn.addEventListener("click", () => { scanMode = "normal"; startScanner(); });
     stopScanBtn.addEventListener("click", () => stopScanner(false));
 
-    scanToAddBtn.addEventListener("click", () => {
+    if (scanToAddBtn) scanToAddBtn.addEventListener("click", () => {
       if (!isAdmin) return;
       scanMode = "adminCapture";
       showPage("scan");
